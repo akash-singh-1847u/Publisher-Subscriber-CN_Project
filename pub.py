@@ -82,6 +82,26 @@ def auto_publish(sock, lock, delay=2):
     except KeyboardInterrupt:
         print("\n[!] Auto mode stopped")
 
+def stress_test(sock, lock, n=1000):
+    print(f"[STRESS TEST] Sending {n} messages...")
+
+    start = time.time()
+
+    threads = []
+    for _ in range(n):
+        topic, msg = random_news()
+        t = threading.Thread(target=publish, args=(sock, topic, msg, lock))
+        t.start()
+        threads.append(t)
+
+    for t in threads:
+        t.join()
+
+    end = time.time()
+
+    print(f"Time: {end - start:.4f}s")
+    print(f"Throughput: {n/(end-start):.2f} msgs/sec")
+
 
 
 
@@ -114,6 +134,11 @@ def main():
 
         elif choice == "2":
             auto_publish(sock, lock)
+        elif choice == "3":
+            n = int(input("Number of messages: "))
+            stress_test(sock, lock, n)
+        
+
 
         
 
