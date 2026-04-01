@@ -29,7 +29,8 @@ def handle_client(conn, addr):
             peek = conn.recv(1, socket.MSG_PEEK)
             if not peek:
                 break
-            if peek == b'{':
+            # Publisher sends length-prefixed JSON (header starts with digit/space).
+            if peek in b"0123456789 {":
                 msg = receive_json(conn)
                 if not msg:
                     break
