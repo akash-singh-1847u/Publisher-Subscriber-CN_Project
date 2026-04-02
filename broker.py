@@ -2,7 +2,7 @@ import socket
 import threading
 import json
 HOST = '0.0.0.0'
-PORT = 5000
+PORT = 9000
 HEADER_SIZE = 10
 FORMAT = "utf-8"
 topics = {}

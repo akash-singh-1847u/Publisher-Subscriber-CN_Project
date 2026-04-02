@@ -4,7 +4,7 @@ import json
 import time
 
 HOST = "localhost"
-PORT = 5000
+PORT = 9000
 FORMAT = "utf-8"
 HEADER_SIZE = 10
 
@@ -39,7 +39,16 @@ def receive_messages(sock):
             if ":" in data:
                 topic, message = data.split(":", 1)
                 timestamp = time.strftime("%H:%M:%S")
-                print(f"\n[{timestamp}] 📨 [{topic.upper()}] {message}")
+
+                content = f"📨 [{topic.upper()}] {message}"
+                width = len(content) + 4
+
+                print("\n" + "═" * width)
+                print(f"║ {content} ║")
+                print(f"║ ⏰ {timestamp}{' ' * (width - len(timestamp) - 5)}║")
+                print("═" * width + "\n")
+
+
                 print("Choice: ", end="", flush=True)  # Re-prompt
         except Exception as e:
             print(f"[ERROR] {e}")

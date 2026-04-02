@@ -8,7 +8,7 @@ HEADER_SIZE = 10
 FORMAT = "utf-8"
 
 
-def connect(host="localhost", port=5000):
+def connect(host="localhost", port=9000):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
     print("Connected to broker")
@@ -39,6 +39,10 @@ def publish(sock, topic, message, lock):
     }, lock)
 
 
+# Default topics (same as subscriber)
+TOPICS = ["sports", "tech", "finance", "weather"]
+
+
 def random_news():
     news_data = {
         "sports": [
@@ -63,11 +67,10 @@ def random_news():
         ]
     }
 
-    topic = random.choice(list(news_data.keys()))
+    topic = random.choice(TOPICS)
     msg = random.choice(news_data[topic])
 
     return topic, msg
-
 
 
 def auto_publish(sock, lock, delay=2):
@@ -81,6 +84,7 @@ def auto_publish(sock, lock, delay=2):
             time.sleep(delay)
     except KeyboardInterrupt:
         print("\n[!] Auto mode stopped")
+
 
 def stress_test(sock, lock, n=1000):
     print(f"[STRESS TEST] Sending {n} messages...")
@@ -103,17 +107,12 @@ def stress_test(sock, lock, n=1000):
     print(f"Throughput: {n/(end-start):.2f} msgs/sec")
 
 
-
-
-
-
 def main():
     sock = connect()
     lock = threading.Lock()
 
-    # create topics
-    topics = ["sports", "tech", "finance", "weather"]
-    for t in topics:
+    # Create predefined topics once
+    for t in TOPICS:
         create_topic(sock, t, lock)
 
     while True:
@@ -126,25 +125,29 @@ def main():
         choice = input("Choice: ")
 
         if choice == "1":
-            topic = input("Topic: ")
-            msg = input("Message: ")
-            create_topic(sock,topic,lock)
+            print(f"Available topics: {TOPICS}")
+            topic = input("Choose topic: ").strip()
 
+            if topic not in TOPICS:
+                print("[ERROR] Invalid topic. Choose from default list.")
+                continue
+
+            msg = input("Message: ")
             publish(sock, topic, msg, lock)
 
         elif choice == "2":
             auto_publish(sock, lock)
+
         elif choice == "3":
             n = int(input("Number of messages: "))
             stress_test(sock, lock, n)
-        
-
-
-        
 
         elif choice == "4":
             sock.close()
             break
+
+        else:
+            print("[!] Invalid choice")
 
 
 if __name__ == "__main__":
