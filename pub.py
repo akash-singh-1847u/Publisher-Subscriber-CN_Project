@@ -10,18 +10,18 @@ FORMAT = "utf-8"
 DEFAULT_TOPICS = ["sports", "tech", "finance", "weather"]
 
 
-def connect(host="localhost", port=9000):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def connect(host="localhost", port=9000): #connects to publisher port 9000 (broker)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
     sock.connect((host, port))
     print("Connected to broker")
     return sock
 
 
 def send(sock, data, lock):
-    msg = json.dumps(data).encode(FORMAT)
-    header = f"{len(msg):<{HEADER_SIZE}}".encode(FORMAT)
+    msg = json.dumps(data).encode(FORMAT) # sends data dict to json then to bytes via encode to broker
+    header = f"{len(msg):<{HEADER_SIZE}}".encode(FORMAT) #makes it so that the header is fixed size
     with lock:
-        sock.sendall(header + msg)
+        sock.sendall(header + msg) #only one thread will send msg
 
 
 def create_topic(sock, topic, lock):
@@ -71,7 +71,7 @@ def stress_test(sock, lock, topics, n=1000):
         t.start()
         threads.append(t)
     for t in threads:
-        t.join()
+        t.join() # waits until each thread is completed
     end = time.time()
     print(f"Time: {end - start:.4f}s")
     print(f"Throughput: {n / (end - start):.2f} msgs/sec")
@@ -79,7 +79,7 @@ def stress_test(sock, lock, topics, n=1000):
 
 def main():
     sock = connect()
-    lock = threading.Lock()
+    lock = threading.Lock() # lets say pub sends 2 msgs the msgs might get interleaved 
 
     active_topics = list(DEFAULT_TOPICS)
     for t in active_topics:
@@ -102,7 +102,7 @@ def main():
             if not topic:
                 print("[ERROR] Topic name cannot be empty.")
                 continue
-            if topic not in active_topics:
+            if topic not in active_topics: # if not in topic then create 
                 create_topic(sock, topic, lock)
                 active_topics.append(topic)
                 print(f"[INFO] New topic '{topic}' created.")
