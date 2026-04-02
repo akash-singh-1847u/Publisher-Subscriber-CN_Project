@@ -6,7 +6,6 @@ HOST = "localhost"
 PORT = 9000
 FORMAT = "utf-8"
 
-# Shared state for live topics received from broker
 available_topics = []
 topics_lock = threading.Lock()
 
@@ -41,10 +40,7 @@ def request_topic_list(sock):
 def receive_messages(sock):
     """
     Background thread: continuously listen for incoming messages.
-
-    Two types of messages arrive on this socket:
-      1. TOPICS:<t1>,<t2>,...   — broker's reply to LIST_TOPICS
-      2. topic:message           — normal published message
+    Handles both TOPICS: responses and topic:message notifications.
     """
     global available_topics
     print("[LISTENING] Waiting for messages...\n")
@@ -56,23 +52,6 @@ def receive_messages(sock):
             if not data:
                 print("[DISCONNECTED] Broker closed the connection.")
                 break
-<<<<<<< HEAD
-            # Broker sends: "topic:message"
-            if ":" in data:
-                topic, message = data.split(":", 1)
-                timestamp = time.strftime("%H:%M:%S")
-
-                content = f"📨 [{topic.upper()}] {message}"
-                width = len(content) + 4
-
-                print("\n" + "═" * width)
-                print(f"║ {content} ║")
-                print(f"║ ⏰ {timestamp}{' ' * (width - len(timestamp) - 5)}║")
-                print("═" * width + "\n")
-
-
-                print("Choice: ", end="", flush=True)  # Re-prompt
-=======
 
             buffer += data
 
@@ -106,9 +85,7 @@ def receive_messages(sock):
                     print("Choice: ", end="", flush=True)
 
             # Handle remaining buffer content without newline
-            # (older broker messages like plain "topic:msg" without newline)
             if buffer and ":" in buffer and not buffer.startswith("TOPICS:"):
-                # Flush it as a message (broker didn't append \n)
                 line = buffer.strip()
                 buffer = ""
                 if line:
@@ -122,7 +99,6 @@ def receive_messages(sock):
                     print("═" * width + "\n")
                     print("Choice: ", end="", flush=True)
 
->>>>>>> fd758cb (all 3 updated)
         except Exception as e:
             print(f"[ERROR] {e}")
             break
