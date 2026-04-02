@@ -12,69 +12,70 @@ topics_lock = threading.Lock()
 
 def connect():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #this creates a tcp socket and connects to broker at localhost:9000
     sock.connect((HOST, PORT))
     print("[CONNECTED] Connected to broker")
     return sock
 
-
+#the messages given to the function are encoded into a computer understandable format (bytes) 
+#then it sends the message through the network (sendall)
 def send_command(sock, command: str):
-    """Send a plain-text command matching the broker's protocol."""
     sock.sendall(command.encode(FORMAT))
 
-
+#creates a command string 'SUBSCRIBE sports' and sends it to user using send_command 
+# the broker adds this client to the "sports subscriber list"
 def subscribe(sock, topic: str):
     send_command(sock, f"SUBSCRIBE {topic}")
     print(f"[SUBSCRIBED] → {topic}")
 
-
+#reates a command string 'UNSUBSCRIBE sports' and sends it to user using send_command 
+# the broker then removes this client from the "sports subscriber list"
 def unsubscribe(sock, topic: str):
     send_command(sock, f"UNSUBSCRIBE {topic}")
     print(f"[UNSUBSCRIBED] → {topic}")
 
-
 def request_topic_list(sock):
-    """Ask the broker for all current topics."""
     send_command(sock, "LIST_TOPICS")
 
 
 def receive_messages(sock):
-    """
-    Background thread: continuously listen for incoming messages.
-    Handles both TOPICS: responses and topic:message notifications.
-    """
+    #Background thread: continuously listen for incoming messages.
     global available_topics
     print("[LISTENING] Waiting for messages...\n")
     buffer = ""
 
     while True:
         try:
+            # gets up to 4096 bytes from socket. messages are then changed to human readable format from byte.
             data = sock.recv(4096).decode(FORMAT)
+            #if there is a break in the connection it is detected and exits the loop
             if not data:
                 print("[DISCONNECTED] Broker closed the connection.")
                 break
 
+            #storing incoming data from socket
             buffer += data
 
-            # Process all complete lines in the buffer
-            while "\n" in buffer:
-                line, buffer = buffer.split("\n", 1)
+           
+            while "\n" in buffer: #until we find  newline from broker
+                line, buffer = buffer.split("\n", 1) #extracts the first line from buffer
                 line = line.strip()
                 if not line:
                     continue
 
                 if line.startswith("TOPICS:"):
-                    # Update the live topic list
-                    raw = line[len("TOPICS:"):]
-                    new_topics = [t for t in raw.split(",") if t]
+                    raw = line[len("TOPICS:"):]#simply removes the word "TOPICS"
+                    new_topics = [t for t in raw.split(",") if t] #splits the remining topics
                     with topics_lock:
-                        available_topics = new_topics
+                        available_topics = new_topics #update the topics 
                     print(f"\n[TOPICS UPDATED] {available_topics}")
                     print("Choice: ", end="", flush=True)
 
                 elif ":" in line:
+                     #splits the info into topic, message. uses only the first colon
                     topic, message = line.split(":", 1)
                     timestamp = time.strftime("%H:%M:%S")
-
+                    # formatting the notification that the broker sends
                     content = f"📨 [{topic.upper()}] {message}"
                     width = len(content) + 4
 
@@ -82,7 +83,9 @@ def receive_messages(sock):
                     print(f"║ {content} ║")
                     print(f"║ ⏰ {timestamp}{' ' * (width - len(timestamp) - 5)}║")
                     print("═" * width + "\n")
-                    print("Choice: ", end="", flush=True)
+                    #cursor stays in the same line after printing and 
+                    # When a message arrives and prints, flush=True ensures the input prompt is immediately shown again without delay.
+                    print("Choice: ", end="", flush=True) # Re-prompt
 
             # Handle remaining buffer content without newline
             if buffer and ":" in buffer and not buffer.startswith("TOPICS:"):
@@ -99,6 +102,7 @@ def receive_messages(sock):
                     print("═" * width + "\n")
                     print("Choice: ", end="", flush=True)
 
+         #if anything goes wrong in the try block it goes here and print error and stop the loop
         except Exception as e:
             print(f"[ERROR] {e}")
             break
@@ -116,18 +120,21 @@ def main():
     global available_topics
 
     sock = connect()
+    #this is a list to track user subscriptions it prevents duplicate subscriptions
     subscribed_topics = []
 
     # Fetch initial topic list from broker
     request_topic_list(sock)
 
-    # Start background listener thread
+    # this runs receive_messages() in the background which helps with receiving of messages without blocking the user input
+    #daemon = true ; Thread automatically exits when main program exits
     listener = threading.Thread(target=receive_messages, args=(sock,), daemon=True)
     listener.start()
 
     # Give the listener a moment to receive the initial topic list
     time.sleep(0.3)
 
+    #this is the menu loop where the user interacts by using subscribe unsubscribe etc
     while True:
         show_menu()
         choice = input("Choice: ").strip()
@@ -141,7 +148,7 @@ def main():
                 current_topics = list(available_topics)
 
             print(f"Available topics: {current_topics}")
-            topic = input("Enter topic to subscribe (or type a new one): ").strip()
+            topic = input("Enter topic to subscribe : ").strip()
             if not topic:
                 print("[ERROR] Topic name cannot be empty.")
                 continue
@@ -179,6 +186,7 @@ def main():
 
         elif choice == "4":
             print("[EXIT] Disconnecting...")
+            #loops through every topic that has been subscribed to and unsubscribes from them
             for topic in subscribed_topics:
                 unsubscribe(sock, topic)
             sock.close()
