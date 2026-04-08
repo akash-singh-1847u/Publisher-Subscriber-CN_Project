@@ -1,23 +1,24 @@
 import socket
 import threading
 import time
-import ssl          # SSL/TLS for secure communication with the broker
+import ssl     # SSL/TLS for secure communication with the broker
 
 HOST     = "localhost"
 PORT     = 9000
 FORMAT   = "utf-8"
-CERTFILE = "server.crt"    # Broker's certificate for identity verification
+CERTFILE = "server.crt" # Broker's certificate for identity verification
 
 available_topics = []
-topics_lock      = threading.Lock()
+topics_lock      = threading.Lock() #mutex lock created so that one client can access shared resource at a time 
 
-msg_count      = 0
+msg_count      = 0 #counter for number of messages received
 session_start  = time.time()
-msg_count_lock = threading.Lock()
+msg_count_lock = threading.Lock() 
 
 
 def connect(host=HOST, port=PORT):
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT) #contains all security rules
+    #transport layer security
 
     # Trust the broker's self-signed cert
     context.load_verify_locations(CERTFILE)
@@ -25,15 +26,15 @@ def connect(host=HOST, port=PORT):
     # Enforce minimum TLS 1.2
     context.minimum_version = ssl.TLSVersion.TLSv1_2
 
-    raw_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #this creates a tcp socket and connects to broker at localhost:9000
-    ssl_sock = context.wrap_socket(raw_sock, server_hostname=host)
+    raw_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)#create socket
+    #this says apply all rules in "context" to this scket and connects to broker at localhost:9000
+    ssl_sock = context.wrap_socket(raw_sock, server_hostname=host) 
 
     try:
         ssl_sock.connect((host, port))
-        cipher = ssl_sock.cipher()
+        cipher = ssl_sock.cipher()#cipher has details about the encryption used 
         print(f"[CONNECTED] Broker at {host}:{port}")
-        print(f"[SSL] Protocol: {cipher[1]}  |  Cipher: {cipher[0]}\n")
+        print(f"[SSL] Protocol: {cipher[1]}  |  Cipher: {cipher[0]}\n")#cipher[0]:encryption algorithm 
     except ssl.SSLError as e:
         print(f"[SSL ERROR] Handshake failed: {e}")
         print("  Make sure the broker is running and server.crt is present.")
@@ -55,13 +56,13 @@ def send_command(sock, command: str):
     except BrokenPipeError:
         print("[ERROR] Connection to broker lost")
 
-#creates a command string 'SUBSCRIBE sports' and sends it to user using send_command 
+#creates a command string 'SUBSCRIBE sports' and sends it to broker using send_command 
 # the broker adds this client to the "sports subscriber list"
 def subscribe(sock, topic: str):
     send_command(sock, f"SUBSCRIBE {topic}")
     print(f"[SUBSCRIBED] → '{topic}'")
 
-#reates a command string 'UNSUBSCRIBE sports' and sends it to user using send_command 
+#reates a command string 'UNSUBSCRIBE sports' and sends it to broker using send_command 
 # the broker then removes this client from the "sports subscriber list"
 def unsubscribe(sock, topic: str):
     send_command(sock, f"UNSUBSCRIBE {topic}")
@@ -69,12 +70,11 @@ def unsubscribe(sock, topic: str):
 
 
 def request_topic_list(sock):
-    """Ask the broker for all currently registered topics."""
     send_command(sock, "LIST_TOPICS")
 
 
 def request_stats(sock):
-    """Ask the broker for performance statistics."""
+    #Ask the broker for performance statistics.
     send_command(sock, "STATS")
 
 #Background thread: continuously listen for incoming messages.
@@ -136,14 +136,14 @@ def receive_messages(sock):
                         count = msg_count
 
                     # formatting the notification that the broker sends
-                    content = f"📨 [{topic.upper()}] {message}"
+                    content = f"[{topic.upper()}] {message}"
                     width   = max(len(content) + 4, 30)
 
                     print("\n" + "═" * width)
                     print(f"║ {content:<{width - 4}} ║")
-                    print(f"║ ⏰ {timestamp}  |  msg #{count:<{width - 20}} ║")
+                    print(f"║  {timestamp}  |  msg #{count:<{width - 20}} ║")
                     print("═" * width + "\n")
-                    #cursor stays in the same line after printing and 
+                    #end ="" cursor stays in the same line after printing and 
                     # When a message arrives and prints, flush=True ensures the input prompt is immediately shown again without delay.
                     print("Choice: ", end="", flush=True) # Re-prompt
 
