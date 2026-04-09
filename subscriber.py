@@ -3,7 +3,7 @@ import threading
 import time
 import ssl     # SSL/TLS for secure communication with the broker
 
-HOST     = "localhost"
+HOST = "10.1.1.5"
 PORT     = 9010
 FORMAT   = "utf-8"
 CERTFILE = "server.crt" # Broker's certificate for identity verification
@@ -28,7 +28,7 @@ def connect(host=HOST, port=PORT):
 
     raw_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)#create socket
     #this says apply all rules in "context" to this scket and connects to broker at localhost:9000
-    ssl_sock = context.wrap_socket(raw_sock, server_hostname=host) 
+    ssl_sock = context.wrap_socket(raw_sock, server_hostname="10.1.1.5")
 
     try:
         ssl_sock.connect((host, port))
