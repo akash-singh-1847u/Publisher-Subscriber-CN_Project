@@ -3,11 +3,11 @@ import json
 import time
 import random
 import threading
-import ssl          # SSL/TLS for secure communication with the broker
+import ssl          
 
-# ─── Connection Configuration ─────────────────────────────────────────────────
+
 HOST        = "localhost"
-PORT        = 9000
+PORT        = 9010
 HEADER_SIZE = 10
 FORMAT      = "utf-8"
 
@@ -74,10 +74,13 @@ def send(sock, data, lock):
     with lock:
         try:
             sock.sendall(header + msg)   # sendall() guarantees all bytes are sent #only one thread will send msg
+            return True  # Send succeeded
         except ssl.SSLError as e:
             print(f"[SSL ERROR] Send failed: {e}")
-        except BrokenPipeError:
-            print("[ERROR] Broker disconnected")
+            return False
+        except (BrokenPipeError, ConnectionResetError, OSError) as e:
+            print(f"[CONN ERROR] Send failed: {e}")
+            return False
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -144,10 +147,10 @@ def stress_test(sock, lock, topics, n=1000):
     threads = []
     start   = time.time()
 
+    # Create all threads first (don't start yet)
     for _ in range(n):
         topic, msg = random_news(topics)
         t = threading.Thread(target=publish, args=(sock, topic, msg, lock))
-        t.start()
         threads.append(t)
 
     # Start all threads as close together as possible

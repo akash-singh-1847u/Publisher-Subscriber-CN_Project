@@ -4,7 +4,7 @@ import time
 import ssl     # SSL/TLS for secure communication with the broker
 
 HOST     = "localhost"
-PORT     = 9000
+PORT     = 9010
 FORMAT   = "utf-8"
 CERTFILE = "server.crt" # Broker's certificate for identity verification
 

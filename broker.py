@@ -26,7 +26,7 @@ log = logging.getLogger("broker")               # Named logger for this module
 
 # ─── Section 2: Configuration Constants ──────────────────────────────────────
 HOST        = '0.0.0.0'   # Bind to ALL interfaces (not just localhost)
-PORT        = 9000         # Both publishers and subscribers connect here
+PORT        = 9010        # Both publishers and subscribers connect here
 HEADER_SIZE = 10           # Every JSON message starts with a 10-byte length header
 FORMAT      = "utf-8"      # Encoding for all bytes ↔ string conversions
 
@@ -78,10 +78,14 @@ perf_lock = threading.Lock()    # Separate lock so perf updates never block topi
 #    b"31        " + b'{"cmd":"PUBLISH","topic":"sports"}'
 #                     ↑ header says 31 bytes  ↑ payload is 31 bytes
 # ════════════════════════════════════════════════════════════════════════════
-def receive_json(conn):
+def receive_json(conn, first_byte=None):
     try:
         # ── Step 1: Read the 10-byte header ──────────────────────────────────
-        header = conn.recv(HEADER_SIZE)
+        # If first_byte was already read to detect protocol type, use it
+        if first_byte:
+            header = first_byte + conn.recv(HEADER_SIZE - 1)
+        else:
+            header = conn.recv(HEADER_SIZE)
         if not header:
             return None         # Empty header = client disconnected cleanly
 
@@ -148,9 +152,10 @@ def handle_client(conn, addr):
 
     while True:
         try:
-            # ── Peek at first byte — doesn't consume it ───────────────────────
-            peek = conn.recv(1, socket.MSG_PEEK)
-            if not peek:
+            # ── Read first byte to determine protocol (JSON vs plain-text) ─────
+            # SSLSocket doesn't support MSG_PEEK, so we read and buffer the byte
+            first_byte = conn.recv(1)
+            if not first_byte:
                 break   # Client closed the connection gracefully
 
 
@@ -158,8 +163,8 @@ def handle_client(conn, addr):
             #  PUBLISHER PATH — JSON Protocol
             #  Activated when first byte is a digit (length header) or '{'
             # ════════════════════════════════════════════════════════════════════
-            if peek in b"0123456789 {":
-                msg = receive_json(conn)
+            if first_byte in b"0123456789 {":
+                msg = receive_json(conn, first_byte)
                 if msg is None:
                     break       # Bad data or disconnection — exit loop
 
@@ -251,7 +256,9 @@ def handle_client(conn, addr):
             #    "STATS\n"
             # ════════════════════════════════════════════════════════════════════
             else:
-                raw = conn.recv(1024).decode(FORMAT)
+                # Keep the detection byte; otherwise commands lose their first letter
+                # (e.g. SUBSCRIBE -> UBSCRIBE) and won't match.
+                raw = (first_byte + conn.recv(1024)).decode(FORMAT)
                 if not raw:
                     break
 
