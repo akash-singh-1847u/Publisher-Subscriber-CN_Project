@@ -6,7 +6,7 @@ import threading
 import ssl          
 
 
-HOST        = "10.1.0.1"
+HOST        = "10.1.1.5"
 PORT        = 9010
 HEADER_SIZE = 10
 FORMAT      = "utf-8"
@@ -26,7 +26,6 @@ NEWS_DATA = {
 
 
 
-# Establishes a TCP connection and upgrades it to SSL/TLS.
 
 
 def connect(host=HOST, port=PORT): #connects to publisher port 9000 (broker)
@@ -44,7 +43,7 @@ def connect(host=HOST, port=PORT): #connects to publisher port 9000 (broker)
     raw_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Wrap the raw socket with SSL before connecting
-    ssl_sock = context.wrap_socket(raw_sock, server_hostname="10.1.0.1")
+    ssl_sock = context.wrap_socket(raw_sock, server_hostname="10.1.1.5")
 
     try:
         ssl_sock.connect((host, port))
