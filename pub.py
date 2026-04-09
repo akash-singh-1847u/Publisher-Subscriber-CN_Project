@@ -6,7 +6,7 @@ import threading
 import ssl          
 
 
-HOST        = "localhost"
+HOST        = "10.1.0.1"
 PORT        = 9010
 HEADER_SIZE = 10
 FORMAT      = "utf-8"
@@ -35,7 +35,7 @@ def connect(host=HOST, port=PORT): #connects to publisher port 9000 (broker)
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT) #protocol tls client is a setting where the socket used must use the highest  ver of tls between both client and server
 
     # Load the broker's self-signed cert so we can verify it
-    # (In production with a CA-signed cert, use context.load_verify_locations(cafile="ca.crt"))
+   
     context.load_verify_locations(CERTFILE)
 
     # Enforce minimum TLS 1.2 — reject older, insecure handshakes
@@ -44,7 +44,7 @@ def connect(host=HOST, port=PORT): #connects to publisher port 9000 (broker)
     raw_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Wrap the raw socket with SSL before connecting
-    ssl_sock = context.wrap_socket(raw_sock, server_hostname=host)
+    ssl_sock = context.wrap_socket(raw_sock, server_hostname="10.1.0.1")
 
     try:
         ssl_sock.connect((host, port))
