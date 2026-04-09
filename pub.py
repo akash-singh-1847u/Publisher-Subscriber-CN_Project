@@ -25,12 +25,10 @@ NEWS_DATA = {
 }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# connect()
+
 # Establishes a TCP connection and upgrades it to SSL/TLS.
-# server_hostname is required so the SSL layer can verify the server certificate
-# matches the expected hostname.
-# ─────────────────────────────────────────────────────────────────────────────
+
+
 def connect(host=HOST, port=PORT): #connects to publisher port 9000 (broker)
 
     # SSLcontext is just the rules ur ssl will follow
@@ -63,18 +61,18 @@ def connect(host=HOST, port=PORT): #connects to publisher port 9000 (broker)
     return ssl_sock
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# send()
+
+
 # Serializes a Python dict to JSON and sends it with a 10-byte length header.
 # The lock ensures only one thread writes to the socket at a time.
-# ─────────────────────────────────────────────────────────────────────────────
+
 def send(sock, data, lock):
     msg    = json.dumps(data).encode(FORMAT) # sends data dict to json then to bytes via encode to broker
     header = f"{len(msg):<{HEADER_SIZE}}".encode(FORMAT)   # e.g. "42        " #makes it so that the header is fixed size
     with lock:
         try:
             sock.sendall(header + msg)   # sendall() guarantees all bytes are sent #only one thread will send msg
-            return True  # Send succeeded
+            return True 
         except ssl.SSLError as e:
             print(f"[SSL ERROR] Send failed: {e}")
             return False
@@ -83,17 +81,15 @@ def send(sock, data, lock):
             return False
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# create_topic() / publish()
-# Thin wrappers that build the correct JSON payload and call send().
-# ─────────────────────────────────────────────────────────────────────────────
+
+
 def create_topic(sock, topic, lock):
     send(sock, {"cmd": "CREATE", "topic": topic}, lock)
     print(f"[CREATED] Topic '{topic}'")
 
 
 def publish(sock, topic, message, lock):
-    # Include a timestamp so the broker can measure publisher→broker latency
+   
     send(sock, {
         "cmd":       "PUBLISH",
         "topic":     topic,
@@ -102,21 +98,17 @@ def publish(sock, topic, message, lock):
     }, lock)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # random_news()
 # Picks a random topic and a matching headline for auto-publish mode.
-# ─────────────────────────────────────────────────────────────────────────────
+
 def random_news(topics):
     topic = random.choice(topics)
     msg   = random.choice(NEWS_DATA.get(topic, [f"Update on {topic}"]))
     return topic, msg
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# auto_publish()
-# Continuously sends random messages at a fixed interval.
-# Runs until Ctrl+C is pressed.
-# ─────────────────────────────────────────────────────────────────────────────
+
 def auto_publish(sock, lock, topics, delay=2):
     print(f"[AUTO MODE] Streaming every {delay}s — Ctrl+C to stop\n")
     count = 0
@@ -136,12 +128,7 @@ def auto_publish(sock, lock, topics, delay=2):
               f"({count/elapsed:.2f} msg/s)")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# stress_test()
-# Spawns N threads simultaneously, each sending one PUBLISH.
-# Measures total time and throughput (messages per second).
-# This tests the broker's ability to handle concurrent publishers.
-# ─────────────────────────────────────────────────────────────────────────────
+
 def stress_test(sock, lock, topics, n=1000):
     print(f"\n[STRESS TEST] Launching {n} concurrent publish threads...")
     threads = []
