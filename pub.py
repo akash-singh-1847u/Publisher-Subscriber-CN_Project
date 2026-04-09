@@ -47,7 +47,7 @@ def connect(host=HOST, port=PORT): #connects to publisher port 9000 (broker)
 
     try:
         ssl_sock.connect((host, port))
-        cipher = ssl_sock.cipher()
+        cipher = ssl_sock.cipher() #cipher returns encrytion algo,tls version
         print(f"[CONNECTED] Broker at {host}:{port}")
         print(f"[SSL] Protocol: {cipher[1]}  |  Cipher: {cipher[0]}")
     except ssl.SSLError as e:
@@ -116,7 +116,7 @@ def auto_publish(sock, lock, topics, delay=2):
         while True:
             topic, msg = random_news(topics)
             publish(sock, topic, msg, lock)
-            count += 1
+            count += 1 #msgs
             elapsed = time.time() - start
             rate    = count / elapsed if elapsed > 0 else 0
             print(f"[AUTO] {topic} → {msg}  |  total: {count}  rate: {rate:.1f} msg/s")
