@@ -202,7 +202,7 @@ def main():
 
             print(f"Available topics : {current_topics}")
             print(f"Your subscriptions: {subscribed_topics}")
-            topic = input("Enter topic to subscribe (or type a new one): ").strip()
+            topic = input("Enter topic to subscribe : ").strip()
 
             if not topic:
                 print("[ERROR] Topic name cannot be empty.")
